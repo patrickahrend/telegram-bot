@@ -1,14 +1,14 @@
 import re
-from googleapiclient.discovery import build
-from google_auth_oauthlib.flow import InstalledAppFlow
-from google.auth.transport.requests import Request
-import pickle
 import os
-import constants as c
+from google.auth.transport.requests import Request
+from google.oauth2.credentials import Credentials
+from google_auth_oauthlib.flow import InstalledAppFlow
+from googleapiclient.discovery import build
+from googleapiclient.errors import HttpError
 
 
-GOOGLE_AUTH = c.GOOGLE_AUTH
-SCOPES = ["https://www.googleapis.com/auth/contacts.readonly"]
+SCOPES = ["https://www.googleapis.com/auth/contacts.readonly","https://www.googleapis.com/auth/user.emails.read","https://www.googleapis.com/auth/profile.emails.read"]
+
 
 def process_message(message, response_array, response):
     # Splits the message and the punctuation into an array
@@ -31,13 +31,11 @@ def get_response(message):
         process_message(message, ["hello", "hi", "hey"], "Hey there!"),
         process_message(message, ["bye", "goodbye"], "Goodbye!"),
         process_message(message, ["how", "are", "you"], "I'm doing fine thanks!"),
-        
         process_message(
             message, ["your", "name"], "My name is Farah, nice to meet you!"
         ),
         process_message(message, ["help", "me"], "I will do my best to assist you!"),
-        process_message(message, ["fahard"], google_connection())
-        # Add more responses here
+        process_message(message, ["google"], "Let me take a look"),
     ]
 
     # Checks all of the response scores and returns the best matching response
@@ -55,19 +53,26 @@ def get_response(message):
     else:
         bot_response = matching_response[1]
 
+    if "google:" in message:
+        name = message.split(":")
+        name = name[1]
+        note = google_connection(name)
+        bot_response = "Here are the contacts notes:" + " " + note
+
     print("Bot response:", bot_response)
     return bot_response
 
 
-def google_connection():
+def google_connection(con_name):
     # The file token.pickle stores the user's access and refresh tokens, and is
     # created automatically when the authorization flow completes for the first
     # time.
-    creds = c.GOOGLE_AUTH
-
-    if os.path.exists("token.pickle"):
-        with open("token.pickle", "rb") as token:
-            creds = pickle.load(token)
+    creds = None
+    # The file token.json stores the user's access and refresh tokens, and is
+    # created automatically when the authorization flow completes for the first
+    # time.
+    if os.path.exists("token.json"):
+        creds = Credentials.from_authorized_user_file("token.json", SCOPES)
     # If there are no (valid) credentials available, let the user log in.
     if not creds or not creds.valid:
         if creds and creds.expired and creds.refresh_token:
@@ -76,12 +81,48 @@ def google_connection():
             flow = InstalledAppFlow.from_client_secrets_file("credentials.json", SCOPES)
             creds = flow.run_local_server(port=0)
         # Save the credentials for the next run
-        with open("token.pickle", "wb") as token:
-            pickle.dump(creds, token)
+        with open("token.json", "w") as token:
+            token.write(creds.to_json())
 
-    return creds
+    try:
+        service = build("people", "v1", credentials=creds)
+        results = (
+            service.people()
+            .connections()
+            .list(
+                resourceName="people/me",
+                pageSize=10,
+                personFields="names,biographies,emailAddresses,phoneNumbers",
+            )
+            .execute()
+        )
+        connections = results.get("connections", [])
 
+        for person in connections:
+            names = person.get("names", [])
+            bios = person.get("biographies", [])
+            emails = person.get("emailAddresses", [])
+            phonenumber = person.get("phoneNumbers", [])
+            returnStr = ""
 
-# Test your system
-# get_response('What is your name bruv?')
-# get_response('Can you help me with something please?')
+            print("from function body", con_name)
+            if names:
+                name = names[0].get("displayName")
+                returnStr = name
+            if bios:
+                bio = bios[0].get("value")
+                returnStr += bio
+            if emails:
+                email = emails[0].get("value")
+                returnStr += email
+            if phonenumber:
+                cell = phonenumber[0].get("value")
+                returnStr += cell
+            else:
+                returnStr += "Sorry, I could not find a person under that name."
+
+            return returnStr
+
+    except HttpError as err:
+        print(err)
+
