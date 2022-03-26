@@ -7,7 +7,9 @@ from googleapiclient.discovery import build
 from googleapiclient.errors import HttpError
 
 
-SCOPES = ["https://www.googleapis.com/auth/contacts.readonly","https://www.googleapis.com/auth/user.emails.read","https://www.googleapis.com/auth/profile.emails.read"]
+SCOPES = [
+    "https://www.googleapis.com/auth/contacts.readonly",
+]
 
 
 def process_message(message, response_array, response):
@@ -86,42 +88,45 @@ def google_connection(con_name):
 
     try:
         service = build("people", "v1", credentials=creds)
-        results = (
-            service.people()
-            .connections()
-            .list(
-                resourceName="people/me",
-                pageSize=10,
-                personFields="names,biographies,emailAddresses,phoneNumbers",
-            )
-            .execute()
-        )
-        connections = results.get("connections", [])
+        # results = (
+        #     service.people()
+        #     .connections()
+        #     .list(
+        #         resourceName="people/me",
+        #         pageSize=10,
+        #         personFields="names, biographies, emailAddresses, phoneNumbers",
+        #     )
+        #     .execute()
+        # )
 
-        for person in connections:
-            names = person.get("names", [])
-            bios = person.get("biographies", [])
-            emails = person.get("emailAddresses", [])
-            phonenumber = person.get("phoneNumbers", [])
-            returnStr = ""
+        profile = service.people().get('people/me')
+        print(profile)
+        #connections = results.get("connections", [])
 
-            print("from function body", con_name)
-            if names:
-                name = names[0].get("displayName")
-                returnStr = name
-            if bios:
-                bio = bios[0].get("value")
-                returnStr += bio
-            if emails:
-                email = emails[0].get("value")
-                returnStr += email
-            if phonenumber:
-                cell = phonenumber[0].get("value")
-                returnStr += cell
-            else:
-                returnStr += "Sorry, I could not find a person under that name."
+        # for person in connections:
+        #     names = person.get("names", [])
+        #     bios = person.get("biographies", [])
+        #     # emails = person.get("emailAddresses", [])
+        #     # phonenumber = person.get("phoneNumbers", [])
+        #     returnStr = ""
 
-            return returnStr
+        #     print("from function body", con_name)
+        #     if names:
+        #         name = names[0].get("displayName")
+        #         returnStr = name
+        #     if bios:
+        #         bio = bios[0].get("value")
+        #         returnStr += bio
+        #         # if emails:
+        #         #     email = emails[0].get("value")
+        #         #     returnStr += email
+        #         # if phonenumber:
+        #         #     cell = phonenumber[0].get("value")
+        #         #     returnStr += cell
+        #         # else:
+        #         #     returnStr += "Sorry, I could not find a person under that name."
+
+        #     return returnStr
 
     except HttpError as err:
         print(err)

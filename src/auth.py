@@ -8,15 +8,18 @@ from google_auth_oauthlib.flow import InstalledAppFlow
 from googleapiclient.discovery import build
 from googleapiclient.errors import HttpError
 
+
 # If modifying these scopes, delete the file token.json.
 SCOPES = ["https://www.googleapis.com/auth/contacts.readonly"]
+
+creds = None
 
 
 def main():
     """Shows basic usage of the People API.
     Prints the name of the first 10 connections.
     """
-    creds = None
+
     # The file token.json stores the user's access and refresh tokens, and is
     # created automatically when the authorization flow completes for the first
     # time.
@@ -32,38 +35,67 @@ def main():
         # Save the credentials for the next run
         with open("token.json", "w") as token:
             token.write(creds.to_json())
+    return creds
 
-    try:
-        service = build("people", "v1", credentials=creds)
 
-        # Call the People API
-        print("List 10 connection names")
-        results = (
-            service.people()
-            .connections()
-            .list(
-                resourceName="people/me",
-                pageSize=10,
-                personFields="names,biographies",
-            )
-            .execute()
+def getContactInfo(connection_name):
+    creds = main()
+    service = build("people", "v1", credentials=creds)
+    print("List 10 connection names")
+    results = (
+        service.people()
+        .connections()
+        .list(
+            resourceName="people/me",
+            pageSize=1000,
+            personFields="names,biographies,emailAddresses,phoneNumbers",
         )
-        connections = results.get("connections", [])
+        .execute()
+    )
+    connections = results.get("connections", [])
 
-        for person in connections:
-            names = person.get("names", [])
-            bio = person.get("biographies", [])
-            if names:
-                name = names[0].get("displayName")
-            if bio:
-                bio = bio[0].get("value")
+    for person in connections:
+        names = person.get("names", [])
+        bios = person.get("biographies", [])
+        if names:
+            print(names)
+        if bios:
+            print(bios)
+        if connection_name in connections:
+            print("yes")
+        # names = person.get("names", [])
+        # bios = person.get("biographies", [])
+        # mails = person.get("emailAddresses", [])
+        # cells = person.get("phoneNumbers", [])
+        # # checks for none
+        # if names:
+        #     name = names[0].get("displayName")
+        # else:
+        #     return " No contact found"
+        # if bios:
+        #     bio = bios[0].get("value")
+        # else:
+        #     bio = " This contact does not have a bio "
+        # if mails:
+        #     mail = mails[0].get("value")
+        # else:
+        #     mail = "No mail found"
+        # if cells:
+        #     cell = cells[0].get("value")
+        # else:
+        #     cell = " No cellphone number found"
 
-                print(name)
-                print(bio)
+    # resultStr = ""
+    # resultStr = (
+    #     name + "\n" + "Cell:" + cell + "\n" + "Email:" + mail + "\n" + "Notes:" + bio
+    # )
+    # return resultStr
 
-    except HttpError as err:
-        print(err)
+
+def callfun():
+    res = getContactInfo("Patrick")
+    print(res)
 
 
 if __name__ == "__main__":
-    main()
+    callfun()
