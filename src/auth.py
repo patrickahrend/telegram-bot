@@ -1,9 +1,6 @@
 # pylint: disable=assignment-from-no-return
 from __future__ import print_function
-
 import os.path
-from attr import field
-
 from google.auth.transport.requests import Request
 from google.oauth2.credentials import Credentials
 from google_auth_oauthlib.flow import InstalledAppFlow
@@ -37,31 +34,54 @@ def main():
     return creds
 
 
-def getContactInfo(name):
+def getContactInfo(name: str) -> str:
     creds = main()
     service = build("people", "v1", credentials=creds)
     results = (
         service.people()
         .searchContacts(
-            pageSize=30, query=name, readMask="biographies,emailAddresses,phoneNumbers",
+            pageSize=30,
+            query=name,
+            readMask="biographies,emailAddresses,phoneNumbers,organizations",
         )
         .execute()
     )
-    quer = results["results"]
-    print(quer)
-    for person in quer:
-        header = person.get("person", [])
+    result = " "
 
-        if header:
-            print(header["phoneNumbers"][0]["value"])
-            print(header["emailAddresses"][0]["value"])
-            x = header["biographies"][0].get("value")
-            print(x)
+    if results.get("results"):
+        quer = results["results"]
+        for person in quer:
+            header = person.get("person", [])
+            result += "\n" + "This is the person found:" + "\n"
+            if header:
+                if header.get("phoneNumbers") is not None:
+                    result += "Cell: " + header.get("phoneNumbers")[0]["value"]
+                else:
+                    result += "No Cell found"
+                if header.get("emailAddresses") is not None:
+                    result += ", Mail: " + header.get("emailAddresses")[0]["value"]
+                else:
+                    result += ", No Mail found"
+                if header.get("organizations") is not None:
+                    result += ", Company: " + header.get("organizations")[0]["name"]
+                else:
+                    result += ", No Company found"
+                if header.get("biographies") is not None:
+                    result += ", Note: " + header.get("biographies")[0]["value"]
+                else:
+                    result += ", No Bio found"
 
-        else:
-            print("Something went wrong")
+            else:
+                print("The person does not have content ")
+        return result
+    else:
+        result = "Sorry I could not find a person under that Name."
+        return result
 
+def addNote(name:str): -> str:
+    
 
 if __name__ == "__main__":
-    getContactInfo("Farhad")
+    s = getContactInfo("Patrick")
+    print(s)
 

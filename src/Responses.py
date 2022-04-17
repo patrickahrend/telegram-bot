@@ -4,12 +4,9 @@ from google.auth.transport.requests import Request
 from google.oauth2.credentials import Credentials
 from google_auth_oauthlib.flow import InstalledAppFlow
 from googleapiclient.discovery import build
-from googleapiclient.errors import HttpError
+import os.path
 
-
-SCOPES = [
-    "https://www.googleapis.com/auth/contacts.readonly",
-]
+SCOPES = ["https://www.googleapis.com/auth/contacts"]
 
 
 def process_message(message, response_array, response):
@@ -37,7 +34,6 @@ def get_response(message):
             message, ["your", "name"], "My name is Farah, nice to meet you!"
         ),
         process_message(message, ["help", "me"], "I will do my best to assist you!"),
-        process_message(message, ["google"], "Let me take a look"),
     ]
 
     # Checks all of the response scores and returns the best matching response
@@ -55,20 +51,16 @@ def get_response(message):
     else:
         bot_response = matching_response[1]
 
-    if "google:" in message:
+    if "soc:lu:" in message:
         name = message.split(":")
-        name = name[1]
-        note = google_connection(name)
-        bot_response = "Here are the contacts notes:" + " " + note
-
+        name = name[2]
+        note = getContactInfo(name)
+        bot_response = " " + note
     print("Bot response:", bot_response)
     return bot_response
 
 
-def google_connection(con_name):
-    # The file token.pickle stores the user's access and refresh tokens, and is
-    # created automatically when the authorization flow completes for the first
-    # time.
+def main():
     creds = None
     # The file token.json stores the user's access and refresh tokens, and is
     # created automatically when the authorization flow completes for the first
@@ -85,49 +77,50 @@ def google_connection(con_name):
         # Save the credentials for the next run
         with open("token.json", "w") as token:
             token.write(creds.to_json())
+    return creds
 
-    try:
-        service = build("people", "v1", credentials=creds)
-        # results = (
-        #     service.people()
-        #     .connections()
-        #     .list(
-        #         resourceName="people/me",
-        #         pageSize=10,
-        #         personFields="names, biographies, emailAddresses, phoneNumbers",
-        #     )
-        #     .execute()
-        # )
 
-        profile = service.people().get('people/me')
-        print(profile)
-        #connections = results.get("connections", [])
+def getContactInfo(name: str) -> str:
+    creds = main()
+    service = build("people", "v1", credentials=creds)
+    results = (
+        service.people()
+        .searchContacts(
+            pageSize=30,
+            query=name,
+            readMask="biographies,emailAddresses,phoneNumbers,organizations",
+        )
+        .execute()
+    )
+    result = " "
 
-        # for person in connections:
-        #     names = person.get("names", [])
-        #     bios = person.get("biographies", [])
-        #     # emails = person.get("emailAddresses", [])
-        #     # phonenumber = person.get("phoneNumbers", [])
-        #     returnStr = ""
+    if results.get("results"):
+        quer = results["results"]
+        for person in quer:
+            header = person.get("person", [])
+            result += "\n" + "This is the person found:" + "\n"
+            if header:
+                if header.get("phoneNumbers") is not None:
+                    result += "Cell: " + header.get("phoneNumbers")[0]["value"]
+                else:
+                    result += "No Cell found"
+                if header.get("emailAddresses") is not None:
+                    result += ", Mail: " + header.get("emailAddresses")[0]["value"]
+                else:
+                    result += ", No Mail found"
+                if header.get("organizations") is not None:
+                    result += ", Company: " + header.get("organizations")[0]["name"]
+                else:
+                    result += ", No Company found"
+                if header.get("biographies") is not None:
+                    result += ", Note: " + header.get("biographies")[0]["value"]
+                else:
+                    result += ", No Bio found"
 
-        #     print("from function body", con_name)
-        #     if names:
-        #         name = names[0].get("displayName")
-        #         returnStr = name
-        #     if bios:
-        #         bio = bios[0].get("value")
-        #         returnStr += bio
-        #         # if emails:
-        #         #     email = emails[0].get("value")
-        #         #     returnStr += email
-        #         # if phonenumber:
-        #         #     cell = phonenumber[0].get("value")
-        #         #     returnStr += cell
-        #         # else:
-        #         #     returnStr += "Sorry, I could not find a person under that name."
-
-        #     return returnStr
-
-    except HttpError as err:
-        print(err)
+            else:
+                print("The person does not have content ")
+        return result
+    else:
+        result = "Sorry I could not find a person under that Name."
+        return result
 
