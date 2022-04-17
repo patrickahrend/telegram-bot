@@ -31,21 +31,18 @@ def get_response(message):
         process_message(message, ["bye", "goodbye"], "Goodbye!"),
         process_message(message, ["how", "are", "you"], "I'm doing fine thanks!"),
         process_message(
-            message, ["your", "name"], "My name is Farah, nice to meet you!"
+            message, ["your", "name"], "My name is Patrick's Bot, nice to meet you!"
         ),
         process_message(message, ["help", "me"], "I will do my best to assist you!"),
     ]
 
-    # Checks all of the response scores and returns the best matching response
     response_scores = []
     for response in response_list:
         response_scores.append(response[0])
 
-    # Get the max value for the best response and store it into a variable
     winning_response = max(response_scores)
     matching_response = response_list[response_scores.index(winning_response)]
 
-    # Return the matching response to the user
     if winning_response == 0:
         bot_response = "I didn't understand what you wrote."
     else:
@@ -62,19 +59,16 @@ def get_response(message):
 
 def main():
     creds = None
-    # The file token.json stores the user's access and refresh tokens, and is
-    # created automatically when the authorization flow completes for the first
-    # time.
     if os.path.exists("token.json"):
         creds = Credentials.from_authorized_user_file("token.json", SCOPES)
-    # If there are no (valid) credentials available, let the user log in.
+
     if not creds or not creds.valid:
         if creds and creds.expired and creds.refresh_token:
             creds.refresh(Request())
         else:
             flow = InstalledAppFlow.from_client_secrets_file("credentials.json", SCOPES)
             creds = flow.run_local_server(port=0)
-        # Save the credentials for the next run
+
         with open("token.json", "w") as token:
             token.write(creds.to_json())
     return creds
