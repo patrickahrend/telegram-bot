@@ -3,7 +3,7 @@ This bot lets you access your Google Contacs and return their personal informati
 ```
 soc:lu:<contact name>
 ```
-Make sure to setup 0Auth beforehand.
+Make sure to setup 0Auth beforehand in a credentials.json in the working directory. First step of debuggin is to remove the token.json and run it again.
 Run the main class to start the bot. On Telegram the bot is called "Google Contact Bot"
 
 
