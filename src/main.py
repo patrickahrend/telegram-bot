@@ -1,8 +1,7 @@
 import logging
 from telegram.ext import *
-import responses
 import constants as c
-
+import responses as r
 
 API_KEY = c.API_KEY
 
@@ -33,7 +32,7 @@ def handle_message(update, context):
     logging.info(f"User ({update.message.chat.id}) says: {text}")
 
     # Bot response
-    response = responses.get_response(text)
+    response = r.get_response(text)
     update.message.reply_text(response)
 
 
